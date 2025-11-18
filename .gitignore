@@ -1,0 +1,29 @@
+# Archivos sensibles y de sesión
+service_account.json
+whatsapp_session/
+
+# Archivos de debug
+debug_*.png
+debug_*.html
+
+# Excel con datos
+*.xlsx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
