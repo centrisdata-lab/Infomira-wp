@@ -495,10 +495,10 @@ class GestorComunidadesWhatsApp:
             # Selector: div[@role='button'][@data-tab='6'] que contiene el nombre de la comunidad
             try:
                 print("  PASO 1: Buscando tab de la comunidad...")
-                time.sleep(2)
 
-                # Buscar el botón con data-tab="6" (tab de Avisos/comunidad)
-                tab_comunidad = self.wait.until(EC.element_to_be_clickable(
+                # Esperar con timeout extendido para conexiones lentas
+                wait_largo = WebDriverWait(self.driver, 60)
+                tab_comunidad = wait_largo.until(EC.element_to_be_clickable(
                     (By.XPATH, "//div[@role='button'][@data-tab='6']")
                 ))
                 tab_comunidad.click()
@@ -512,10 +512,10 @@ class GestorComunidadesWhatsApp:
             # Selector: button[@aria-label='Añadir miembros'] con icono person-add-filled-refreshed
             try:
                 print("  PASO 2: Buscando botón 'Añadir miembros'...")
-                time.sleep(1)
 
-                # Buscar por el botón con aria-label exacto
-                boton_anadir = self.wait.until(EC.element_to_be_clickable(
+                # Esperar con timeout extendido
+                wait_largo = WebDriverWait(self.driver, 60)
+                boton_anadir = wait_largo.until(EC.element_to_be_clickable(
                     (By.XPATH, "//button[@aria-label='Añadir miembros']")
                 ))
                 boton_anadir.click()
@@ -529,10 +529,10 @@ class GestorComunidadesWhatsApp:
             # Selector: div[@contenteditable='true'][@data-tab='3'] con aria-label="Buscar un nombre o número"
             try:
                 print("  PASO 3: Escribiendo número en campo de búsqueda...")
-                time.sleep(1)
 
-                # Buscar campo de búsqueda específico
-                campo_busqueda = self.wait.until(EC.presence_of_element_located(
+                # Esperar con timeout extendido
+                wait_largo = WebDriverWait(self.driver, 60)
+                campo_busqueda = wait_largo.until(EC.presence_of_element_located(
                     (By.XPATH, "//div[@contenteditable='true'][@data-tab='3'][@aria-label='Buscar un nombre o número']")
                 ))
                 campo_busqueda.click()
@@ -566,10 +566,10 @@ class GestorComunidadesWhatsApp:
             # Selector: div[@role='button'] con span[@data-icon='checkmark-medium']
             try:
                 print("  PASO 5: Buscando botón de confirmar (checkmark)...")
-                time.sleep(2)
 
-                # Buscar el botón con el icono de checkmark
-                boton_checkmark = self.wait.until(EC.element_to_be_clickable(
+                # Esperar con timeout extendido
+                wait_largo = WebDriverWait(self.driver, 60)
+                boton_checkmark = wait_largo.until(EC.element_to_be_clickable(
                     (By.XPATH, "//span[@data-icon='checkmark-medium']/ancestor::div[@role='button'][1]")
                 ))
                 boton_checkmark.click()
@@ -583,10 +583,10 @@ class GestorComunidadesWhatsApp:
             # Selector: div[@role='button'] que contiene span con texto "Añadir miembro"
             try:
                 print("  PASO 6: Buscando botón final 'Añadir miembro'...")
-                time.sleep(2)
 
-                # Buscar el botón con las clases específicas y el texto "Añadir miembro"
-                boton_confirmar = self.wait.until(EC.element_to_be_clickable(
+                # Esperar con timeout extendido
+                wait_largo = WebDriverWait(self.driver, 60)
+                boton_confirmar = wait_largo.until(EC.element_to_be_clickable(
                     (By.XPATH, "//div[contains(@class, 'x1i10hfl') and contains(@class, 'x1qjc9v5')]//span[contains(text(), 'Añadir miembro')]")
                 ))
 
@@ -637,10 +637,10 @@ class GestorComunidadesWhatsApp:
             # Selector: button[@role='tab'] con title="Comunidad"
             try:
                 print("  PASO 1: Haciendo clic en tab 'Comunidad'...")
-                time.sleep(2)
 
-                # Buscar el botón tab "Comunidad"
-                tab_comunidad = self.wait.until(EC.element_to_be_clickable(
+                # Esperar con timeout extendido para conexiones lentas
+                wait_largo = WebDriverWait(self.driver, 60)
+                tab_comunidad = wait_largo.until(EC.element_to_be_clickable(
                     (By.XPATH, "//button[@role='tab' and @title='Comunidad']")
                 ))
                 tab_comunidad.click()
@@ -656,14 +656,16 @@ class GestorComunidadesWhatsApp:
             # Este es el div con role="button" que contiene el texto de miembros y el ícono search
             try:
                 print("  PASO 2: Haciendo clic en 'miembros de la comunidad'...")
-                time.sleep(2)
+
+                # Esperar con timeout extendido
+                wait_largo = WebDriverWait(self.driver, 60)
 
                 # Buscar el botón que contiene "miembros de la comunidad" y el ícono search
                 boton_miembros = None
 
                 # Método 1: Por el ícono search dentro de un botón que tiene el texto "miembros"
                 try:
-                    boton_miembros = self.wait.until(EC.element_to_be_clickable(
+                    boton_miembros = wait_largo.until(EC.element_to_be_clickable(
                         (By.XPATH, "//div[@role='button' and contains(@class, 'x1ypdohk')]//span[@data-icon='search']/..")
                     ))
                     print("  ✓ Botón 'miembros' encontrado (método 1)")
@@ -674,10 +676,9 @@ class GestorComunidadesWhatsApp:
                 if not boton_miembros:
                     try:
                         # Buscar el span que contiene "miembros de la comunidad" y obtener el div padre clickeable
-                        span_miembros = self.driver.find_element(
-                            By.XPATH,
-                            "//span[contains(text(), 'miembros de la comunidad')]"
-                        )
+                        span_miembros = wait_largo.until(EC.presence_of_element_located(
+                            (By.XPATH, "//span[contains(text(), 'miembros de la comunidad')]")
+                        ))
                         boton_miembros = span_miembros.find_element(By.XPATH, "./ancestor::div[@role='button'][1]")
                         print("  ✓ Botón 'miembros' encontrado (método 2)")
                     except:
@@ -699,14 +700,16 @@ class GestorComunidadesWhatsApp:
             # Selector: div[@aria-label="Buscar miembros"][@contenteditable="true"]
             try:
                 print("  PASO 3: Escribiendo número en campo 'Buscar miembros'...")
-                time.sleep(2)
+
+                # Esperar con timeout extendido
+                wait_largo = WebDriverWait(self.driver, 60)
 
                 # Buscar el campo por aria-label="Buscar miembros"
                 campo_busqueda = None
 
                 # Método 1: Por aria-label exacto
                 try:
-                    campo_busqueda = self.wait.until(EC.presence_of_element_located(
+                    campo_busqueda = wait_largo.until(EC.presence_of_element_located(
                         (By.XPATH, "//div[@aria-label='Buscar miembros' and @contenteditable='true']")
                     ))
                     print("  ✓ Campo 'Buscar miembros' encontrado (método 1)")
@@ -716,10 +719,9 @@ class GestorComunidadesWhatsApp:
                 # Método 2: Buscar el <p> hijo dentro del div con aria-label
                 if not campo_busqueda:
                     try:
-                        campo_busqueda = self.driver.find_element(
-                            By.XPATH,
-                            "//div[@aria-label='Buscar miembros']//p[contains(@class, 'selectable-text')]"
-                        )
+                        campo_busqueda = wait_largo.until(EC.presence_of_element_located(
+                            (By.XPATH, "//div[@aria-label='Buscar miembros']//p[contains(@class, 'selectable-text')]")
+                        ))
                         print("  ✓ Campo encontrado (método 2: p dentro del div)")
                     except:
                         pass
@@ -749,10 +751,10 @@ class GestorComunidadesWhatsApp:
             # PASO 4: Hacer clic en el resultado (el contacto encontrado)
             try:
                 print("  PASO 4: Haciendo clic en el contacto encontrado...")
-                time.sleep(2)
 
-                # Buscar el primer resultado con la clase específica
-                contacto = self.wait.until(EC.element_to_be_clickable(
+                # Esperar con timeout extendido
+                wait_largo = WebDriverWait(self.driver, 60)
+                contacto = wait_largo.until(EC.element_to_be_clickable(
                     (By.XPATH, "//div[contains(@class, '_ak8l') and contains(@class, '_ap1_')]")
                 ))
                 contacto.click()
@@ -766,12 +768,14 @@ class GestorComunidadesWhatsApp:
             # Selector: div que contiene el SVG close-circle-refreshed y el span con texto "Eliminar de la comunidad"
             try:
                 print("  PASO 5: Buscando opción 'Eliminar de la comunidad'...")
-                time.sleep(2)
+
+                # Esperar con timeout extendido
+                wait_largo = WebDriverWait(self.driver, 60)
 
                 # Método 1: Por el span con el texto y clases específicas
                 opcion_eliminar = None
                 try:
-                    opcion_eliminar = self.wait.until(EC.element_to_be_clickable(
+                    opcion_eliminar = wait_largo.until(EC.element_to_be_clickable(
                         (By.XPATH, "//span[contains(@class, 'x1o2sk6j') and contains(text(), 'Eliminar de la comunidad')]")
                     ))
                     print("  ✓ Opción eliminar encontrada (método 1: span texto)")
@@ -782,10 +786,9 @@ class GestorComunidadesWhatsApp:
                 if not opcion_eliminar:
                     try:
                         # Buscar el div que contiene el SVG con title="close-circle-refreshed"
-                        div_eliminar = self.driver.find_element(
-                            By.XPATH,
-                            "//svg[@data-icon='close-circle-refreshed']/ancestor::div[contains(@class, 'x1c4vz4f')][1]"
-                        )
+                        div_eliminar = wait_largo.until(EC.presence_of_element_located(
+                            (By.XPATH, "//svg[@data-icon='close-circle-refreshed']/ancestor::div[contains(@class, 'x1c4vz4f')][1]")
+                        ))
                         opcion_eliminar = div_eliminar
                         print("  ✓ Opción eliminar encontrada (método 2: div con icono)")
                     except:
@@ -807,10 +810,10 @@ class GestorComunidadesWhatsApp:
             # Selector: span con texto "Eliminar" y clases específicas
             try:
                 print("  PASO 6: Confirmando eliminación con botón 'Eliminar'...")
-                time.sleep(2)
 
-                # Buscar el span con el texto "Eliminar" exacto
-                boton_confirmar = self.wait.until(EC.element_to_be_clickable(
+                # Esperar con timeout extendido
+                wait_largo = WebDriverWait(self.driver, 60)
+                boton_confirmar = wait_largo.until(EC.element_to_be_clickable(
                     (By.XPATH, "//span[contains(@class, 'x140p0ai') and text()='Eliminar']")
                 ))
 
