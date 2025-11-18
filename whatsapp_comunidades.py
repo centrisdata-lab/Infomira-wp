@@ -127,21 +127,33 @@ class GestorComunidadesWhatsApp:
             self.cantidad_procesar = None  # None significa todos
             print("✅ Se procesarán TODOS los registros")
 
+    def extraer_emoji_color(self, texto):
+        """Extraer el emoji de color del texto si existe"""
+        emojis_colores = ['🟠', '🟢', '🔴', '🟡', '🔵', '🟣', '🟤', '⚫', '⚪',
+                        '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫']
+
+        for emoji in emojis_colores:
+            if emoji in texto:
+                return emoji
+        return None
+
     def limpiar_texto_para_selenium(self, texto):
-        """Limpiar emojis y caracteres especiales que ChromeDriver no puede manejar"""
+        """Limpiar emojis del texto para que ChromeDriver pueda escribirlo"""
         try:
-            # Remover emojis y caracteres fuera del BMP (Basic Multilingual Plane)
-            # Mantener solo caracteres ASCII extendido y algunos Unicode básicos
+            # NUEVA ESTRATEGIA: Siempre limpiar emojis para la búsqueda
+            # porque ChromeDriver no puede escribir emojis fuera del BMP
+            # Luego buscaremos por el texto limpio y filtraremos por emoji
+
+            # Remover TODOS los emojis
             texto_limpio = ''.join(char for char in texto if ord(char) < 0x10000)
 
-            # Si quedó vacío o muy corto, retornar el original
+            # Si quedó muy corto, usar patrón regex más agresivo
             if len(texto_limpio.strip()) < 3:
-                # Intentar método alternativo: remover solo emojis comunes
                 emoji_pattern = re.compile("["
                     u"\U0001F600-\U0001F64F"  # emoticones
                     u"\U0001F300-\U0001F5FF"  # símbolos & pictogramas
-                    u"\U0001F680-\U0001F6FF"  # transporte & símbolos de mapa
-                    u"\U0001F1E0-\U0001F1FF"  # banderas (iOS)
+                    u"\U0001F680-\U0001F6FF"  # transporte & símbolos
+                    u"\U0001F1E0-\U0001F1FF"  # banderas
                     u"\U00002702-\U000027B0"
                     u"\U000024C2-\U0001F251"
                     u"\U0001f926-\U0001f937"
@@ -152,14 +164,13 @@ class GestorComunidadesWhatsApp:
                     u"\u23cf"
                     u"\u23e9"
                     u"\u231a"
-                    u"\ufe0f"  # dingbats
+                    u"\ufe0f"
                     u"\u3030"
                     "]+", flags=re.UNICODE)
                 texto_limpio = emoji_pattern.sub(r'', texto)
 
             return texto_limpio.strip()
         except:
-            # Si falla, retornar texto sin modificar
             return texto
 
     def configurar_navegador(self):
@@ -290,24 +301,27 @@ class GestorComunidadesWhatsApp:
         try:
             print(f"\n🔍 Buscando comunidad: {nombre_comunidad}")
 
-            # Limpiar el nombre de emojis para evitar errores de ChromeDriver
-            nombre_limpio = self.limpiar_texto_para_selenium(nombre_comunidad)
-            if nombre_limpio != nombre_comunidad:
-                print(f"   ⚠️ Nombre con emojis detectado, usando versión limpia: {nombre_limpio}")
+            # Extraer emoji de color si existe
+            emoji_color = self.extraer_emoji_color(nombre_comunidad)
+            if emoji_color:
+                print(f"   ℹ️ Emoji de color detectado: {emoji_color}")
+
+            # Limpiar el nombre para búsqueda (sin emojis porque ChromeDriver no los soporta)
+            nombre_busqueda = self.limpiar_texto_para_selenium(nombre_comunidad)
+            print(f"   ℹ️ Buscando con texto limpio: {nombre_busqueda}")
 
             # Hacer clic en el buscador
-            buscador = self.wait.until(EC.presence_of_element_located(
+            wait_largo = WebDriverWait(self.driver, 60)
+            buscador = wait_largo.until(EC.presence_of_element_located(
                 (By.XPATH, "//div[@contenteditable='true'][@data-tab='3']")
             ))
             buscador.click()
             time.sleep(1)
 
-            # Limpiar completamente el buscador (importante para nuevas búsquedas)
-            # Método 1: Usar clear()
+            # Limpiar completamente el buscador
             buscador.clear()
             time.sleep(0.5)
 
-            # Método 2: Seleccionar todo y borrar (más confiable en WhatsApp Web)
             buscador.send_keys(Keys.CONTROL + "a")
             time.sleep(0.3)
             buscador.send_keys(Keys.DELETE)
@@ -315,36 +329,73 @@ class GestorComunidadesWhatsApp:
 
             print(f"   ✓ Buscador limpiado")
 
-            # Escribir el nombre de la comunidad (versión limpia)
-            buscador.send_keys(nombre_limpio)
-            print(f"   ✓ Buscando: {nombre_limpio}")
+            # Escribir el nombre SIN emoji
+            buscador.send_keys(nombre_busqueda)
+            print(f"   ✓ Buscando: {nombre_busqueda}")
             self.esperar_aleatorio(2, 3)
 
             # Buscar el resultado y hacer clic
             try:
                 resultado = None
 
-                # Intento 1: Buscar por el span con el título que contiene el nombre
-                try:
-                    span_resultado = self.wait.until(EC.presence_of_element_located(
-                        (By.XPATH, f"//span[contains(@title, '{nombre_limpio}')]")
-                    ))
-                    # Buscar el div padre clickeable (el contenedor del chat)
-                    resultado = span_resultado.find_element(By.XPATH, "./ancestor::div[@role='listitem' or @role='row'][1]")
-                    print(f"   ✓ Resultado encontrado (método 1: por título)")
-                except Exception as e1:
-                    print(f"   ℹ️ Intento 1 falló: {e1}")
-                    pass
+                # Si tiene emoji de color, buscar entre múltiples resultados
+                if emoji_color:
+                    print(f"   🔍 Buscando resultados que contengan '{emoji_color}' en el título...")
+                    try:
+                        # Obtener TODOS los resultados de búsqueda
+                        time.sleep(1)  # Dar tiempo a que carguen los resultados
 
-                # Intento 2: Buscar el primer resultado en la lista
+                        resultados = self.driver.find_elements(
+                            By.XPATH,
+                            "//div[@id='pane-side']//div[@role='listitem'] | //div[@id='pane-side']//div[@role='row']"
+                        )
+
+                        print(f"   ℹ️ Se encontraron {len(resultados)} resultados")
+
+                        # Buscar el que tenga el emoji correcto en el título
+                        for idx, res in enumerate(resultados):
+                            try:
+                                # Buscar el span con el título dentro de este resultado
+                                spans = res.find_elements(By.XPATH, ".//span[@title]")
+                                for span in spans:
+                                    titulo = span.get_attribute('title')
+                                    if titulo and emoji_color in titulo:
+                                        print(f"   ✓ Resultado encontrado con emoji {emoji_color}: {titulo}")
+                                        resultado = res
+                                        break
+                                if resultado:
+                                    break
+                            except:
+                                continue
+
+                        if not resultado:
+                            print(f"   ⚠️ No se encontró resultado con emoji {emoji_color}")
+                    except Exception as e:
+                        print(f"   ℹ️ Error buscando por emoji: {e}")
+                        pass
+
+                # Si no tiene emoji o no se encontró por emoji, buscar por título
                 if not resultado:
                     try:
-                        resultado = self.wait.until(EC.presence_of_element_located(
+                        # Buscar span que contenga el nombre limpio
+                        span_resultado = wait_largo.until(EC.presence_of_element_located(
+                            (By.XPATH, f"//span[contains(@title, '{nombre_busqueda}')]")
+                        ))
+                        resultado = span_resultado.find_element(By.XPATH, "./ancestor::div[@role='listitem' or @role='row'][1]")
+                        print(f"   ✓ Resultado encontrado por texto")
+                    except Exception as e2:
+                        print(f"   ℹ️ Búsqueda por texto falló: {e2}")
+                        pass
+
+                # Último intento: primer resultado (solo si NO hay emoji de color)
+                if not resultado and not emoji_color:
+                    try:
+                        resultado = wait_largo.until(EC.presence_of_element_located(
                             (By.XPATH, "//div[@id='pane-side']//div[@role='listitem'][1] | //div[@id='pane-side']//div[@role='row'][1]")
                         ))
-                        print(f"   ✓ Resultado encontrado (método 2: primer item)")
-                    except Exception as e2:
-                        print(f"   ℹ️ Intento 2 falló: {e2}")
+                        print(f"   ✓ Resultado encontrado (primer item - sin emoji)")
+                    except Exception as e3:
+                        print(f"   ℹ️ Intento primer resultado falló: {e3}")
                         pass
 
                 # Intento 3: Presionar Enter en el buscador
