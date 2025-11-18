@@ -248,41 +248,6 @@ class GestorComunidadesWhatsApp:
         print(f"⏳ Esperando {tiempo:.1f} segundos...")
         time.sleep(tiempo)
 
-    def _guardar_debug(self, nombre_error):
-        """Guardar screenshot y HTML para debug cuando hay un error"""
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-            # Guardar screenshot
-            screenshot_path = f"debug_{nombre_error}_{timestamp}.png"
-            self.driver.save_screenshot(screenshot_path)
-            print(f"  📸 Screenshot guardado: {screenshot_path}")
-
-            # Guardar HTML de la página
-            html_path = f"debug_{nombre_error}_{timestamp}.html"
-            with open(html_path, 'w', encoding='utf-8') as f:
-                f.write(self.driver.page_source)
-            print(f"  📄 HTML guardado: {html_path}")
-
-            # Intentar listar botones visibles para debug
-            try:
-                print(f"  🔍 Botones visibles en pantalla:")
-                botones = self.driver.find_elements(By.XPATH, "//div[@role='button']")
-                for i, btn in enumerate(botones[:10]):  # Mostrar solo los primeros 10
-                    try:
-                        if btn.is_displayed():
-                            texto = btn.text[:50] if btn.text else "[sin texto]"
-                            print(f"     {i+1}. {texto}")
-                    except:
-                        pass
-            except:
-                pass
-
-            return True
-        except Exception as e:
-            print(f"  ⚠️ No se pudo guardar debug: {e}")
-            return False
-
     def _cerrar_ventanas_modales(self):
         """Cerrar todas las ventanas modales y volver a la vista principal de chat"""
         try:
@@ -485,24 +450,20 @@ class GestorComunidadesWhatsApp:
                             self.esperar_aleatorio(2, 3)
                         except Exception as e:
                             print(f"   ⚠️ Error abriendo detalles del perfil: {e}")
-                            self._guardar_debug("error_detalles_perfil")
                             return False
 
                         self.esperar_aleatorio(2, 3)
                         return True
                     else:
                         print(f"   ⚠️ El chat no se abrió después de 4 intentos")
-                        self._guardar_debug("error_abrir_comunidad")
                         return False
                 else:
                     print(f"❌ No se encontró la comunidad '{nombre_comunidad}'")
                     print(f"   💡 Verifica que existe con ese nombre en WhatsApp")
-                    self._guardar_debug("error_buscar_comunidad")
                     return False
 
             except Exception as e:
                 print(f"❌ Error buscando comunidad: {e}")
-                self._guardar_debug("error_buscar_comunidad")
                 return False
 
         except Exception as e:
@@ -545,7 +506,6 @@ class GestorComunidadesWhatsApp:
                 self.esperar_aleatorio(2, 3)
             except Exception as e:
                 print(f"  ⚠️ Error en PASO 1 (clic en tab comunidad): {e}")
-                self._guardar_debug("error_paso1_tab_comunidad")
                 return False
 
             # PASO 2: Clic en "Añadir miembros"
@@ -563,7 +523,6 @@ class GestorComunidadesWhatsApp:
                 self.esperar_aleatorio(2, 3)
             except Exception as e:
                 print(f"  ⚠️ Error en PASO 2 (botón añadir miembros): {e}")
-                self._guardar_debug("error_paso2_boton_anadir")
                 return False
 
             # PASO 3: Buscar el contacto en el campo de búsqueda
@@ -591,7 +550,6 @@ class GestorComunidadesWhatsApp:
                 time.sleep(2)
             except Exception as e:
                 print(f"  ⚠️ Error en PASO 3 (escribir número): {e}")
-                self._guardar_debug("error_paso3_escribir")
                 return False
 
             # PASO 4: Presionar Enter para buscar
@@ -619,7 +577,6 @@ class GestorComunidadesWhatsApp:
                 self.esperar_aleatorio(2, 3)
             except Exception as e:
                 print(f"  ⚠️ Error en PASO 5 (checkmark): {e}")
-                self._guardar_debug("error_paso5_checkmark")
                 return False
 
             # PASO 6: Clic en "Añadir miembro" final
@@ -654,7 +611,6 @@ class GestorComunidadesWhatsApp:
 
             except Exception as e:
                 print(f"  ⚠️ Error en PASO 6 (botón final añadir): {e}")
-                self._guardar_debug("error_paso6_confirmar")
 
                 # Intentar cerrar
                 try:
@@ -666,11 +622,10 @@ class GestorComunidadesWhatsApp:
 
         except Exception as e:
             print(f"❌ Error general agregando {celular}: {e}")
-            self._guardar_debug("error_general_agregar")
             return False
 
     def eliminar_participante(self, celular):
-        """Eliminar un participante de la comunidad - PASOS EXACTOS"""
+        """Eliminar un participante de la comunidad - PASOS EXACTOS ACTUALIZADOS"""
         try:
             # Convertir celular a string y limpiar el .0 si viene de Excel
             celular = str(int(float(celular)))
@@ -678,120 +633,94 @@ class GestorComunidadesWhatsApp:
 
             time.sleep(2)
 
-            # PASO 1: Buscar y hacer clic en el elemento con ícono de búsqueda
-            # Este es el botón que abre el buscador de miembros
+            # PASO 1: Clic en el tab "Comunidad"
+            # Selector: button[@role='tab'] con title="Comunidad"
             try:
-                print("  PASO 1: Buscando ícono de búsqueda de miembros...")
+                print("  PASO 1: Haciendo clic en tab 'Comunidad'...")
                 time.sleep(2)
 
-                # Intentar buscar el ícono de búsqueda (lupa) con data-icon="search"
-                boton_busqueda = None
+                # Buscar el botón tab "Comunidad"
+                tab_comunidad = self.wait.until(EC.element_to_be_clickable(
+                    (By.XPATH, "//button[@role='tab' and @title='Comunidad']")
+                ))
+                tab_comunidad.click()
+                print("  ✓ Clic en tab 'Comunidad' exitoso")
+                print("  ⏳ Esperando que cargue la vista de comunidad...")
+                # Esperar más tiempo porque la vista de comunidad se demora en cargar
+                self.esperar_aleatorio(4, 6)
+            except Exception as e:
+                print(f"  ⚠️ Error en PASO 1 (tab comunidad): {e}")
+                return False
 
-                # Método 1: Por icono de búsqueda
+            # PASO 2: Clic en "X miembros de la comunidad" (el botón con ícono de búsqueda)
+            # Este es el div con role="button" que contiene el texto de miembros y el ícono search
+            try:
+                print("  PASO 2: Haciendo clic en 'miembros de la comunidad'...")
+                time.sleep(2)
+
+                # Buscar el botón que contiene "miembros de la comunidad" y el ícono search
+                boton_miembros = None
+
+                # Método 1: Por el ícono search dentro de un botón que tiene el texto "miembros"
                 try:
-                    icono_search = self.driver.find_element(
-                        By.XPATH,
-                        "//span[@data-icon='search']"
-                    )
-                    # Buscar el div padre con role='button'
-                    boton_busqueda = icono_search.find_element(By.XPATH, "./ancestor::div[@role='button'][1]")
-                    print("  ✓ Botón de búsqueda encontrado (método 1: icono)")
+                    boton_miembros = self.wait.until(EC.element_to_be_clickable(
+                        (By.XPATH, "//div[@role='button' and contains(@class, 'x1ypdohk')]//span[@data-icon='search']/..")
+                    ))
+                    print("  ✓ Botón 'miembros' encontrado (método 1)")
                 except:
                     pass
 
-                # Método 2: Por clases específicas que me diste
-                if not boton_busqueda:
+                # Método 2: Por el div que contiene el span con "miembros de la comunidad"
+                if not boton_miembros:
                     try:
-                        boton_busqueda = self.driver.find_element(
+                        # Buscar el span que contiene "miembros de la comunidad" y obtener el div padre clickeable
+                        span_miembros = self.driver.find_element(
                             By.XPATH,
-                            "//div[@role='button' and contains(@class, 'x1ypdohk') and contains(@class, 'xtnn1bt')]"
+                            "//span[contains(text(), 'miembros de la comunidad')]"
                         )
-                        print("  ✓ Botón de búsqueda encontrado (método 2: clases)")
+                        boton_miembros = span_miembros.find_element(By.XPATH, "./ancestor::div[@role='button'][1]")
+                        print("  ✓ Botón 'miembros' encontrado (método 2)")
                     except:
                         pass
 
-                # Método 3: Buscar por cualquier elemento clickeable que tenga un icono de búsqueda
-                if not boton_busqueda:
-                    try:
-                        elementos = self.driver.find_elements(
-                            By.XPATH,
-                            "//div[@role='button']"
-                        )
-                        for elem in elementos:
-                            try:
-                                # Verificar si contiene un icono de búsqueda
-                                elem.find_element(By.XPATH, ".//span[@data-icon='search']")
-                                boton_busqueda = elem
-                                print("  ✓ Botón de búsqueda encontrado (método 3: escaneo)")
-                                break
-                            except:
-                                continue
-                    except:
-                        pass
-
-                if boton_busqueda:
-                    boton_busqueda.click()
-                    print("  ✓ Clic en botón de búsqueda exitoso")
+                if boton_miembros:
+                    boton_miembros.click()
+                    print("  ✓ Clic en 'miembros de la comunidad' exitoso")
                     self.esperar_aleatorio(2, 3)
                 else:
-                    print("  ⚠️ No se encontró el botón de búsqueda")
-                    self._guardar_debug("error_paso1_busqueda")
+                    print("  ⚠️ No se encontró el botón de miembros")
                     return False
 
             except Exception as e:
-                print(f"  ⚠️ Error en PASO 1 (búsqueda): {e}")
-                self._guardar_debug("error_paso1_busqueda")
+                print(f"  ⚠️ Error en PASO 2 (botón miembros): {e}")
                 return False
 
-            # PASO 2: Escribir el celular en el campo de búsqueda
-            # El campo de búsqueda debería aparecer después del clic anterior
+            # PASO 3: Escribir el celular en el campo "Buscar miembros"
+            # Selector: div[@aria-label="Buscar miembros"][@contenteditable="true"]
             try:
-                print("  PASO 2: Escribiendo número en campo de búsqueda...")
+                print("  PASO 3: Escribiendo número en campo 'Buscar miembros'...")
                 time.sleep(2)
 
-                # Buscar el campo de búsqueda con múltiples métodos
+                # Buscar el campo por aria-label="Buscar miembros"
                 campo_busqueda = None
 
-                # Método 1: Por <p> con clases selectable-text copyable-text (el selector exacto del usuario)
+                # Método 1: Por aria-label exacto
                 try:
-                    campo_busqueda = self.driver.find_element(
-                        By.XPATH,
-                        "//p[contains(@class, 'selectable-text') and contains(@class, 'copyable-text') and contains(@class, 'x15bjb6t')]"
-                    )
-                    print("  ✓ Campo encontrado (método 1: p.selectable-text)")
+                    campo_busqueda = self.wait.until(EC.presence_of_element_located(
+                        (By.XPATH, "//div[@aria-label='Buscar miembros' and @contenteditable='true']")
+                    ))
+                    print("  ✓ Campo 'Buscar miembros' encontrado (método 1)")
                 except:
                     pass
 
-                # Método 2: Por clase lexical-rich-text-input
+                # Método 2: Buscar el <p> hijo dentro del div con aria-label
                 if not campo_busqueda:
                     try:
                         campo_busqueda = self.driver.find_element(
                             By.XPATH,
-                            "//div[contains(@class, 'lexical-rich-text-input')]"
+                            "//div[@aria-label='Buscar miembros']//p[contains(@class, 'selectable-text')]"
                         )
-                        print("  ✓ Campo encontrado (método 2: lexical)")
-                    except:
-                        pass
-
-                # Método 3: Por div contenteditable
-                if not campo_busqueda:
-                    try:
-                        campo_busqueda = self.driver.find_element(
-                            By.XPATH,
-                            "//div[@contenteditable='true']"
-                        )
-                        print("  ✓ Campo encontrado (método 3: contenteditable)")
-                    except:
-                        pass
-
-                # Método 4: Por input type text
-                if not campo_busqueda:
-                    try:
-                        campo_busqueda = self.driver.find_element(
-                            By.XPATH,
-                            "//input[@type='text']"
-                        )
-                        print("  ✓ Campo encontrado (método 4: input)")
+                        print("  ✓ Campo encontrado (método 2: p dentro del div)")
                     except:
                         pass
 
@@ -808,21 +737,18 @@ class GestorComunidadesWhatsApp:
                     celular_completo = f"+57{celular}"
                     campo_busqueda.send_keys(celular_completo)
                     print(f"  ✓ Escrito: {celular_completo}")
-                    time.sleep(2)
+                    self.esperar_aleatorio(2, 3)
                 else:
-                    print("  ⚠️ No se encontró el campo de búsqueda")
-                    self._guardar_debug("error_paso2_campo_busqueda")
+                    print("  ⚠️ No se encontró el campo 'Buscar miembros'")
                     return False
 
             except Exception as e:
-                print(f"  ⚠️ Error en PASO 2 (escribir número): {e}")
-                self._guardar_debug("error_paso2_escribir_eliminar")
+                print(f"  ⚠️ Error en PASO 3 (escribir en buscar miembros): {e}")
                 return False
 
-            # PASO 4: Hacer clic en el contacto que aparece (primero)
-            # Selector: div con clase "_ak8l _ap1_"
+            # PASO 4: Hacer clic en el resultado (el contacto encontrado)
             try:
-                print("  PASO 4: Haciendo clic en el contacto...")
+                print("  PASO 4: Haciendo clic en el contacto encontrado...")
                 time.sleep(2)
 
                 # Buscar el primer resultado con la clase específica
@@ -834,36 +760,58 @@ class GestorComunidadesWhatsApp:
                 self.esperar_aleatorio(2, 3)
             except Exception as e:
                 print(f"  ⚠️ Error en PASO 4 (clic en contacto): {e}")
-                self._guardar_debug("error_paso4_contacto")
                 return False
 
             # PASO 5: Clic en "Eliminar de la comunidad"
-            # Selector: span con texto "Eliminar de la comunidad" y clases específicas
+            # Selector: div que contiene el SVG close-circle-refreshed y el span con texto "Eliminar de la comunidad"
             try:
                 print("  PASO 5: Buscando opción 'Eliminar de la comunidad'...")
                 time.sleep(2)
 
-                # Buscar el span con el texto y clases exactas
-                opcion_eliminar = self.wait.until(EC.element_to_be_clickable(
-                    (By.XPATH, "//span[contains(@class, 'x1o2sk6j') and contains(text(), 'Eliminar de la comunidad')]")
-                ))
-                opcion_eliminar.click()
-                print("  ✓ Clic en 'Eliminar de la comunidad' exitoso")
-                self.esperar_aleatorio(2, 3)
+                # Método 1: Por el span con el texto y clases específicas
+                opcion_eliminar = None
+                try:
+                    opcion_eliminar = self.wait.until(EC.element_to_be_clickable(
+                        (By.XPATH, "//span[contains(@class, 'x1o2sk6j') and contains(text(), 'Eliminar de la comunidad')]")
+                    ))
+                    print("  ✓ Opción eliminar encontrada (método 1: span texto)")
+                except:
+                    pass
+
+                # Método 2: Por el div padre que contiene el icono close-circle-refreshed
+                if not opcion_eliminar:
+                    try:
+                        # Buscar el div que contiene el SVG con title="close-circle-refreshed"
+                        div_eliminar = self.driver.find_element(
+                            By.XPATH,
+                            "//svg[@data-icon='close-circle-refreshed']/ancestor::div[contains(@class, 'x1c4vz4f')][1]"
+                        )
+                        opcion_eliminar = div_eliminar
+                        print("  ✓ Opción eliminar encontrada (método 2: div con icono)")
+                    except:
+                        pass
+
+                if opcion_eliminar:
+                    opcion_eliminar.click()
+                    print("  ✓ Clic en 'Eliminar de la comunidad' exitoso")
+                    self.esperar_aleatorio(2, 3)
+                else:
+                    print("  ⚠️ No se encontró la opción 'Eliminar de la comunidad'")
+                    return False
+
             except Exception as e:
                 print(f"  ⚠️ Error en PASO 5 (opción eliminar): {e}")
-                self._guardar_debug("error_paso5_opcion_eliminar")
                 return False
 
-            # PASO 6: Confirmar eliminación con el botón "Eliminar"
-            # Selector: div[@role='button'] con clases específicas
+            # PASO 6: Confirmar eliminación haciendo clic en el botón "Eliminar"
+            # Selector: span con texto "Eliminar" y clases específicas
             try:
-                print("  PASO 6: Confirmando eliminación...")
+                print("  PASO 6: Confirmando eliminación con botón 'Eliminar'...")
                 time.sleep(2)
 
-                # Buscar el botón de confirmar con las clases específicas
+                # Buscar el span con el texto "Eliminar" exacto
                 boton_confirmar = self.wait.until(EC.element_to_be_clickable(
-                    (By.XPATH, "//div[@role='button' and contains(@class, 'x1i10hfl') and contains(@class, 'x1qjc9v5')]")
+                    (By.XPATH, "//span[contains(@class, 'x140p0ai') and text()='Eliminar']")
                 ))
 
                 # Intentar clic normal, si falla usar JavaScript
@@ -872,36 +820,22 @@ class GestorComunidadesWhatsApp:
                 except:
                     self.driver.execute_script("arguments[0].click();", boton_confirmar)
 
-                print("  ✓ Clic en 'Eliminar' confirmado")
+                print("  ✓ Clic en botón 'Eliminar' confirmado")
                 print(f"✅ Participante {celular} eliminado exitosamente")
                 self.esperar_aleatorio(2, 3)
 
-                # Cerrar ventanas
-                try:
-                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
-                    time.sleep(1)
-                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
-                    time.sleep(1)
-                except:
-                    pass
+                # Cerrar ventanas modales
+                self._cerrar_ventanas_modales()
 
                 return True
 
             except Exception as e:
                 print(f"  ⚠️ Error en PASO 6 (confirmar eliminar): {e}")
-                self._guardar_debug("error_paso6_confirmar_eliminar")
-
-                # Intentar cerrar
-                try:
-                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
-                    time.sleep(1)
-                except:
-                    pass
+                self._cerrar_ventanas_modales()
                 return False
 
         except Exception as e:
             print(f"❌ Error general eliminando {celular}: {e}")
-            self._guardar_debug("error_general_eliminar")
             return False
 
     def procesar_excel(self):

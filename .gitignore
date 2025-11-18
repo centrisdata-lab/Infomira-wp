@@ -6,9 +6,6 @@ whatsapp_session/
 debug_*.png
 debug_*.html
 
-# Excel con datos
-*.xlsx
-
 # Python
 __pycache__/
 *.py[cod]
